@@ -66,10 +66,4 @@ contract CommunityPool is Initializable, UUPSUpgradeable, OwnableUpgradeable {
             token.safeTransfer(owner(), token.balanceOf(address(this))); 
         }
     }
-
-    function transferToken(address to, uint256 amount) external onlyOwner {
-        IERC20 token = IERC20(address(0)); 
-        token.safeTransfer(to, amount); 
-        emit TransferTokenEvent(to, amount);
-    }
 }
