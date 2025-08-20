@@ -19,7 +19,7 @@ contract CreaterPlayerNodesPool is Initializable, UUPSUpgradeable, OwnableUpgrad
     using Math for uint256;
 
 
-    event WithdrawEvent(address indexed from, address indexed token, uint256 value);
+    event WithdrawEvent(address indexed from, address indexed token, uint256 value, bytes payload);
     event AdminWithdrawEvent(address indexed to, address indexed token, uint256 value);
     event SetSignerCheckerEvent(address indexed signerChecker);
     event SetUnlockTimeEvent(uint256 indexed unlockTime);
@@ -86,21 +86,23 @@ contract CreaterPlayerNodesPool is Initializable, UUPSUpgradeable, OwnableUpgrad
         return unlockAmount;
     }
 
-    function memberWithdraw(Withdraw.WithdrawInfo calldata info) external {
+    function userWithdraw(Withdraw.WithdrawInfo calldata info) external {
         if(Withdraw._withdrawInfoCheck(info, signerChecker, nonceChecker, codeChecker)){
             uint256 amount = _calculateUnlockAmount();
             require(amount > 0, "No amount");
-            require(info.amount <= alreadyReceivedAmount, "No enough amount");
-            alreadyReceivedAmount += amount;
+            require(info.amount <= amount - alreadyReceivedAmount, "No enough amount");
+           
             IERC20 token = IERC20(tokenAddress); 
-            token.safeTransfer(msg.sender, amount); 
-            emit WithdrawEvent(msg.sender, tokenAddress, amount);
+            require(token.balanceOf(address(this)) >= info.amount, "node pool: insufficient balance for withdrawal");
+            alreadyReceivedAmount += info.amount;
+            token.safeTransfer(msg.sender, info.amount); 
+            emit WithdrawEvent(msg.sender, tokenAddress, info.amount, bytes(info.payload));
         }
     }
 
     /// @notice 
     function adminWithdraw() external onlyOwner {
-        require(block.timestamp > 30 * 43 days, "Unlock time not reached");
+        require(block.timestamp > unlockTime + 30 * 43 days, "Unlock time not reached");
         IERC20 token = IERC20(tokenAddress); 
         token.safeTransfer(owner(), token.balanceOf(address(this))); 
         emit AdminWithdrawEvent(owner(), tokenAddress, token.balanceOf(address(this)));

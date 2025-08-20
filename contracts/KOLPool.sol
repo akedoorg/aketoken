@@ -32,11 +32,13 @@ contract KOLPool is Initializable, UUPSUpgradeable, OwnableUpgradeable, IBase {
     
     mapping(address => KOL) public kol;  
 
+    uint256 public startTime;
    
     function initialize(address token) public initializer {
         __Ownable_init(msg.sender); 
         __UUPSUpgradeable_init(); 
         tokenAddress = token;
+        startTime = block.timestamp;
     }
 
     function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
@@ -61,8 +63,8 @@ contract KOLPool is Initializable, UUPSUpgradeable, OwnableUpgradeable, IBase {
         }
         unlockAmount = totalAmout * 20 / 100;    
         uint256 deltaTime = currentTime - unlockTime;
-        // uint256 monthsPassed = deltaTime / (30 days); // Calculate the number of months passed
-        uint256 monthsPassed = deltaTime / (30 minutes); // Calculate the number of months passed
+        uint256 monthsPassed = deltaTime / (30 days); // Calculate the number of months passed
+        // uint256 monthsPassed = deltaTime / (30 minutes); // Calculate the number of months passed
         
         // Unlock starts from the 1st month (no unlock in the first 5 months)
         if(monthsPassed >= 1) {
@@ -114,7 +116,7 @@ contract KOLPool is Initializable, UUPSUpgradeable, OwnableUpgradeable, IBase {
     }
     /// @notice 
     function adminWithdraw() external onlyOwner {
-        require(block.timestamp > 30 * 43 days, "Unlock time not reached");
+        require(block.timestamp > startTime + 30 * 43 days, "Unlock time not reached");
         IERC20 token = IERC20(tokenAddress); 
         token.safeTransfer(owner(), token.balanceOf(address(this))); 
         emit AdminWithdrawEvent(owner(), tokenAddress, token.balanceOf(address(this)));
